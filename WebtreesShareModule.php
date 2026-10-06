@@ -114,6 +114,20 @@ class WebtreesShareModule extends AbstractModule implements ModuleCustomInterfac
         return '0.1.0';
     }
 
+    /**
+     * webtrees compares this file with customModuleVersion() and shows a notice when a newer version exists.
+     * Bump both together (the release workflow checks it).
+     */
+    public function customModuleLatestVersionUrl(): string
+    {
+        return 'https://raw.githubusercontent.com/Schoaf/webtrees-contribution-request/main/latest-version.txt';
+    }
+
+    public function customModuleSupportUrl(): string
+    {
+        return 'https://github.com/Schoaf/webtrees-contribution-request';
+    }
+
     public function boot(): void
     {
         View::registerNamespace($this->name(), $this->resourcesFolder() . 'views/');

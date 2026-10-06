@@ -1,0 +1,49 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish a release: the ZIP contains one folder,
+# webtrees-contribution-request/, ready to unpack into modules_v4/.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: PHP syntax check
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      # Tag, customModuleVersion() and latest-version.txt (what webtrees checks
+      # for its "new version available" notice) must all say the same.
+      - name: Check version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CODE=$(grep -A2 'function customModuleVersion' WebtreesShareModule.php | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+          FILE=$(tr -d '[:space:]' < latest-version.txt)
+          echo "tag=$TAG code=$CODE latest-version.txt=$FILE"
+          [ "$TAG" = "$CODE" ] && [ "$TAG" = "$FILE" ] || { echo "::error::Versions differ"; exit 1; }
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build ZIP
+        run: git archive --format=zip --prefix=webtrees-contribution-request/ -o "webtrees-contribution-request-${{ steps.version.outputs.version }}.zip" HEAD
+
+      # Release notes: this version's section of CHANGELOG.md.
+      - name: Release notes
+        run: |
+          awk -v v="## ${{ steps.version.outputs.version }}" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "::error::No CHANGELOG.md section '## ${{ steps.version.outputs.version }}'"; exit 1; }
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "webtrees-contribution-request-${{ steps.version.outputs.version }}.zip" --title "$GITHUB_REF_NAME" --notes-file notes.md

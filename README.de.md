@@ -5,8 +5,9 @@
 Ein Modul für [webtrees](https://webtrees.net/), mit dem man eine einzelne Person per Link mit jemandem teilen
 kann, der **kein** webtrees-Konto hat – zum Beispiel einer Tante, die bestimmt weiß, wann ihr Vater geboren
 wurde, aber selbst nie ein Konto anlegen würde. Ein gewöhnliches Zusatzmodul: Es liegt in `modules_v4/`,
-der webtrees-Kern wird nicht verändert. Unabhängig von anderen Modulen wie „webtreesand-api“ – keins der beiden
-liest die Tabellen oder Klassen des anderen.
+der webtrees-Kern wird nicht verändert. Unabhängig von anderen Modulen wie [api4webtrees](https://github.com/thobgg/api4webtrees) – keins der beiden
+liest die Tabellen oder Klassen des anderen. Die App [webtrees mobile](https://github.com/Schoaf/webtrees-mobile)
+unterstützt es.
 
 | | |
 | - | - |
@@ -36,13 +37,15 @@ Ein Link ist **2 Tage** gültig.
 
 ## Installation
 
-1. Diesen Ordner nach `modules_v4/webtrees-contribution-request` kopieren, sodass `modules_v4/webtrees-contribution-request/module.php`
-   entsteht.
-2. Fertig. Das Modul legt beim ersten Aufruf seine eine Tabelle an (`webtreesshare_request`) und ist danach
-   aktiv, sichtbar unter *Verwaltung → Module → Alle Module*.
+1. `webtrees-contribution-request-<Version>.zip` aus dem
+   [neuesten Release](https://github.com/Schoaf/webtrees-contribution-request/releases/latest) herunterladen.
+2. In `modules_v4/` entpacken, sodass `modules_v4/webtrees-contribution-request/module.php` existiert.
+3. Fertig. Das Modul legt beim ersten Aufruf seine Tabelle (`webtreesshare_request`) an und ist dann aktiv,
+   zu sehen unter *Verwaltung → Module → Alle Module*. Dort zeigt webtrees auch an, wenn es eine neuere
+   Version gibt.
 
-Aktualisieren: Ordner ersetzen. Entfernen: Ordner löschen (die Tabelle bleibt bestehen und kann bei Bedarf von
-Hand entfernt werden).
+Aktualisieren: Ordner ersetzen. Entfernen: Ordner löschen (die Tabelle bleibt und kann bei Bedarf von Hand
+gelöscht werden).
 
 ## Datenschutz und Rechte
 
@@ -56,7 +59,7 @@ Hand entfernt werden).
 ## Für Entwickler
 
 Einstieg in den Quelltext ist der Kopf von `WebtreesShareModule.php`. Die wichtigsten Endpunkte
-(`/module/webtrees-contribution-request/<Aktion>[/<Baum>]`, wie bei jedem webtrees-Modul ohne eigene Routen):
+(`index.php?route=/module/_webtrees-contribution-request_/<Aktion>[/<Baum>]`, wie bei jedem webtrees-Modul ohne eigene Routen):
 
 | Aktion | Methode | Angemeldet? | Zweck |
 | - | - | - | - |
@@ -73,3 +76,9 @@ Einstieg in den Quelltext ist der Kopf von `WebtreesShareModule.php`. Die wichti
 Ein eingereichtes Foto liegt zunächst im eigenen „data“-Ordner von webtrees, nicht im Medienarchiv des
 Baums – erst wenn die anfragende Person es auf der Vergleichsseite annimmt, wird daraus ein echtes
 Medienobjekt.
+
+## Release
+
+`customModuleVersion()` und `latest-version.txt` erhöhen, einen Abschnitt in `CHANGELOG.md` ergänzen, dann
+einen Tag `v<Version>` pushen. Der Release-Workflow prüft, dass alle drei passen, baut das ZIP und
+veröffentlicht das Release.

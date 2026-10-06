@@ -5,7 +5,8 @@
 A module for [webtrees](https://webtrees.net/) that lets you share a single person with someone who has
 **no** webtrees account — for example a relative who certainly knows a birth date, but would never create an
 account themselves. An ordinary add-on module: it lives in `modules_v4/`, the webtrees core is untouched.
-Independent of other modules such as "webtreesand-api" — neither reads the other's tables or classes.
+Independent of other modules such as [api4webtrees](https://github.com/thobgg/api4webtrees) — neither reads the
+other's tables or classes. The app [webtrees mobile](https://github.com/Schoaf/webtrees-mobile) supports it.
 
 | | |
 | - | - |
@@ -33,9 +34,11 @@ A link is valid for **2 days**.
 
 ## Installation
 
-1. Copy this folder to `modules_v4/webtrees-contribution-request`, so that `modules_v4/webtrees-contribution-request/module.php` exists.
-2. Done. The module creates its one table (`webtreesshare_request`) on first use and is then active, visible
-   under *Control panel → Modules → All modules*.
+1. Download `webtrees-contribution-request-<version>.zip` from the
+   [latest release](https://github.com/Schoaf/webtrees-contribution-request/releases/latest).
+2. Unpack it into `modules_v4/`, so that `modules_v4/webtrees-contribution-request/module.php` exists.
+3. Done. The module creates its one table (`webtreesshare_request`) on first use and is then active, visible
+   under *Control panel → Modules → All modules*. webtrees shows a notice there when a newer version is out.
 
 Updating: replace the folder. Removing: delete the folder (the table stays behind and can be dropped
 manually if desired).
@@ -51,7 +54,7 @@ manually if desired).
 ## For developers
 
 Start reading at the top of `WebtreesShareModule.php`. Main endpoints
-(`/module/webtrees-contribution-request/<Action>[/<tree>]`, the same no-custom-routes convention every webtrees module
+(`index.php?route=/module/_webtrees-contribution-request_/<Action>[/<tree>]`, the same no-custom-routes convention every webtrees module
 uses):
 
 | Action | Method | Auth? | Purpose |
@@ -68,3 +71,8 @@ uses):
 
 A submitted photo is held in webtrees' own "data" folder, never the tree's media library, until the
 requester accepts it on the review page — only then does it become a real media object.
+
+## Releasing
+
+Bump `customModuleVersion()` and `latest-version.txt`, add a section to `CHANGELOG.md`, then push a tag
+`v<version>`. The release workflow checks that all three match, builds the ZIP and publishes the release.
