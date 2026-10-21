@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+Module texts in English for all languages except German; the email and the request page follow the app's language.
+
 ## 0.1.0
 
 Initial version.
