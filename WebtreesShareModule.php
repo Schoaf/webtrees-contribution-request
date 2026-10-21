@@ -109,6 +109,20 @@ class WebtreesShareModule extends AbstractModule implements ModuleCustomInterfac
         return 'Andreas Scharf';
     }
 
+    /**
+     * Source language is German; every other language gets the English texts (resources/lang/en.php).
+     *
+     * @return array<string,string>
+     */
+    public function customTranslations(string $language): array
+    {
+        if (str_starts_with($language, 'de')) {
+            return [];
+        }
+
+        return require __DIR__ . '/resources/lang/en.php';
+    }
+
     public function customModuleVersion(): string
     {
         return '0.1.0';

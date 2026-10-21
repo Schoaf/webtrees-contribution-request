@@ -76,6 +76,8 @@ trait RequestPages
      */
     public function postCreateRequestAction(ServerRequestInterface $request): ResponseInterface
     {
+        $this->useRequestedLanguage($request);
+
         $tree       = Validator::attributes($request)->tree();
         $body       = $this->body($request);
         $xref       = $this->str($body, 'xref');
@@ -103,6 +105,8 @@ trait RequestPages
      */
     public function getRequestEmailTemplateAction(ServerRequestInterface $request): ResponseInterface
     {
+        $this->useRequestedLanguage($request);
+
         $tree  = Validator::attributes($request)->tree();
         $token = Validator::queryParams($request)->string('token', '');
         $row   = $this->findByToken($token);
@@ -132,6 +136,8 @@ trait RequestPages
      */
     public function postSendRequestEmailAction(ServerRequestInterface $request): ResponseInterface
     {
+        $this->useRequestedLanguage($request);
+
         $tree  = Validator::attributes($request)->tree();
         $body  = $this->body($request);
         $token = $this->str($body, 'token');
@@ -1231,5 +1237,30 @@ trait RequestPages
         $individual->createFact('1 OBJE @' . $media->xref() . '@', true);
 
         $pending_fs->delete($photo);
+    }
+
+    /**
+     * Apps send their language as ?lang= (like api4webtrees): texts and the email to the relative then come in the
+     * requester's app language rather than the site's. Only languages active in this webtrees installation.
+     */
+    private function useRequestedLanguage(ServerRequestInterface $request): void
+    {
+        $wanted = strtolower(Validator::queryParams($request)->string('lang', ''));
+
+        if ($wanted === '') {
+            return;
+        }
+
+        foreach (I18N::activeLocales() as $locale) {
+            $tag = $locale->languageTag();
+
+            if (strtolower($tag) === $wanted || explode('-', strtolower($tag))[0] === $wanted) {
+                if ($tag !== I18N::languageTag()) {
+                    I18N::init($tag);
+                }
+
+                return;
+            }
+        }
     }
 }
