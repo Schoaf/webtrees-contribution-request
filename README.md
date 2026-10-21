@@ -5,8 +5,7 @@
 A module for [webtrees](https://webtrees.net/) that lets you share a single person with someone who has
 **no** webtrees account — for example a relative who certainly knows a birth date, but would never create an
 account themselves. An ordinary add-on module: it lives in `modules_v4/`, the webtrees core is untouched.
-Independent of other modules such as [api4webtrees](https://github.com/thobgg/api4webtrees) — neither reads the
-other's tables or classes. The app [webtrees mobile](https://github.com/Schoaf/webtrees-mobile) supports it.
+The app [webtrees mobile](https://github.com/Schoaf/webtrees-mobile) supports it.
 
 | | |
 | - | - |

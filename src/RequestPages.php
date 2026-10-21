@@ -54,7 +54,7 @@ use const UPLOAD_ERR_OK;
 
 /**
  * Every action method of this module (get.../post...), plus the private helpers they share.
- * See WebtreesShareModule.php for the overall shape (one table, no dependency on webtreesand-api).
+ * See WebtreesShareModule.php for the overall shape (one table, no dependency on other modules).
  */
 trait RequestPages
 {
@@ -228,7 +228,6 @@ trait RequestPages
             'fields'          => $data['fields'] ?? [],
             'context'         => $data['context'] ?? [],
             'photo_url'       => $photo !== '' ? $this->actionUrl('RequestExistingPhoto', $tree->name(), ['token' => $token]) : '',
-            'app_url'         => $this->deepLinkUrl($request, $tree, $token),
             'action'          => $this->actionUrl('RequestSubmit', $tree->name()),
         ]);
     }
@@ -944,23 +943,6 @@ trait RequestPages
         return $base_url . '/index.php?route=' . urlencode($path);
     }
 
-    /**
-     * Best-effort deep link into the app, mirroring webtreesand-api's pairing link
-     * (scheme "webtreesand", see modules_v4/webtreesand-api/src/AppPages.php:181).
-     * The app needs its own intent-filter/handler for the "request" host to catch this -
-     * that's app-side work; the web form below works regardless of whether it does.
-     */
-    private function deepLinkUrl(ServerRequestInterface $request, Tree $tree, string $token): string
-    {
-        $base_url = Validator::attributes($request)->string('base_url');
-
-        return 'webtreesand://request?' . http_build_query([
-            'url'   => $base_url,
-            'tree'  => $tree->name(),
-            'token' => $token,
-        ]);
-    }
-
     private function individualCount(Tree $tree): int
     {
         return DB::table('individuals')->where('i_file', '=', $tree->id())->count();
@@ -1210,9 +1192,9 @@ trait RequestPages
     }
 
     /**
-     * Turn an accepted pending photo into a real webtrees media object, exactly the way
-     * webtreesand-api's own photo upload does it (content-hash filename, accept the media
-     * object immediately, link it to the record as a normal - possibly pending - edit).
+     * Turn an accepted pending photo into a real webtrees media object (content-hash filename,
+     * accept the media object immediately, link it to the record as a normal - possibly
+     * pending - edit).
      */
     private function applyPendingPhoto(Tree $tree, Individual $individual, string $photo): void
     {
@@ -1240,7 +1222,7 @@ trait RequestPages
     }
 
     /**
-     * Apps send their language as ?lang= (like api4webtrees): texts and the email to the relative then come in the
+     * Apps send their language as ?lang=: texts and the email to the relative then come in the
      * requester's app language rather than the site's. Only languages active in this webtrees installation.
      */
     private function useRequestedLanguage(ServerRequestInterface $request): void

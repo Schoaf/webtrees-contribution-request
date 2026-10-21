@@ -5,8 +5,7 @@
 Ein Modul für [webtrees](https://webtrees.net/), mit dem man eine einzelne Person per Link mit jemandem teilen
 kann, der **kein** webtrees-Konto hat – zum Beispiel einer Tante, die bestimmt weiß, wann ihr Vater geboren
 wurde, aber selbst nie ein Konto anlegen würde. Ein gewöhnliches Zusatzmodul: Es liegt in `modules_v4/`,
-der webtrees-Kern wird nicht verändert. Unabhängig von anderen Modulen wie [api4webtrees](https://github.com/thobgg/api4webtrees) – keins der beiden
-liest die Tabellen oder Klassen des anderen. Die App [webtrees mobile](https://github.com/Schoaf/webtrees-mobile)
+der webtrees-Kern wird nicht verändert. Die App [webtrees mobile](https://github.com/Schoaf/webtrees-mobile)
 unterstützt es.
 
 | | |

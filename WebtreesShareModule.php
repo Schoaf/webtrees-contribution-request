@@ -41,10 +41,8 @@ use function route;
  *   src/GedcomSnapshot.php   pure helpers: snapshot a person's key facts, apply accepted fields back
  *   src/Migrations/          database schema (one table)
  *
- * Independent of "webtreesand-api" - it does not read its classes or tables, so either module
- * can be enabled/disabled/updated without affecting the other. An app that wants the "ask a
- * relative" feature should check whether this module resolves (see getInfoAction) before
- * showing it, since it is a separate, optional module.
+ * Depends on no other module. An app that wants the "ask a relative" feature should check
+ * whether this module resolves (see getInfoAction) before showing it, since it is optional.
  */
 class WebtreesShareModule extends AbstractModule implements ModuleCustomInterface, ModuleMenuInterface, ModuleGlobalInterface
 {
@@ -207,7 +205,7 @@ SVG;
     }
 
     /**
-     * Build a URL to one of this module's own actions - same convention as webtreesand-api.
+     * Build a URL to one of this module's own actions.
      *
      * @param array<string,scalar|null> $params
      */
