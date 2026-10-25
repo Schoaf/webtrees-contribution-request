@@ -191,6 +191,17 @@ class Module(unittest.TestCase):
         width, height, _ = image_file(link.group(1))
         self.assertEqual((100, 60), (width, height))
 
+    def test_review_link_of_a_discarded_request(self):
+        """The email's review link after the request was discarded: the open requests with a note, not JSON."""
+        editor, token = create_request()
+        row = environment.sql("SELECT id FROM wt_webtreesshare_request WHERE token = ?", token)[0][0]
+        editor.post("RequestDelete", {"id": row})
+        r = editor.page(f"/module/{environment.MODULE_NAME}/RequestReview/tree", id=row)
+        self.assertIn(r.status, (302, 303), r)
+        page = editor.page(f"/module/{environment.MODULE_NAME}/RequestReview/tree")
+        self.assertIn("This request is no longer available.", page.text)  # the editor works in English
+        self.assertNotIn('"error"', page.text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

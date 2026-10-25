@@ -410,21 +410,21 @@ trait RequestPages
 
         $row = DB::table('webtreesshare_request')->where('id', '=', $id)->first();
 
-        if ($row === null || (int) $row->gedcom_id !== $tree->id()) {
-            return $this->error(404, 'not-found');
+        // Most likely cause: this is the "you got a response" email's link, opened in a
+        // browser/device with no active webtrees session - send them to log in and straight
+        // back here, rather than a bare 404 for what's actually just "please sign in".
+        if (Auth::id() === null) {
+            $return_url = $this->actionUrl('RequestReview', $tree->name(), ['id' => $id]);
+
+            return redirect($this->loginUrl($request, $tree, $return_url));
         }
 
-        if ((int) $row->creator_user_id !== (int) Auth::id()) {
-            // Most likely cause: this is the "you got a response" email's link, opened in a
-            // browser/device with no active webtrees session - send them to log in and straight
-            // back here, rather than a bare 404 for what's actually just "please sign in".
-            if (Auth::id() === null) {
-                $return_url = $this->actionUrl('RequestReview', $tree->name(), ['id' => $id]);
+        // Discarded meanwhile (or someone else's): the open requests, with a note that can be closed -
+        // the next one is right there. This is a page in a browser, not the app's JSON.
+        if ($row === null || (int) $row->gedcom_id !== $tree->id() || (int) $row->creator_user_id !== (int) Auth::id()) {
+            FlashMessages::addMessage(I18N::translate('Diese Anfrage ist nicht mehr verfügbar.'), 'info');
 
-                return redirect($this->loginUrl($request, $tree, $return_url));
-            }
-
-            return $this->error(404, 'not-found');
+            return redirect($this->actionUrl('RequestReview', $tree->name()));
         }
 
         $individual    = Registry::individualFactory()->make($row->xref, $tree);

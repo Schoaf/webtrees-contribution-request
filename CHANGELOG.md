@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+The review link of a request that was discarded meanwhile opens the list of open requests with a note, instead of
+showing an error as JSON.
+
 ## 0.3.0
 
 A photo arrives ready to use: the guest turns it, frames the person and describes it (title, description, photo or

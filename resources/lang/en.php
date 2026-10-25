@@ -74,4 +74,5 @@ return [
     'Foto'                                => 'Photo',
     'Dokument'                            => 'Document',
     'Als Profilbild verwenden (statt des bisherigen)' => 'Use as profile picture (instead of the current one)',
+    'Diese Anfrage ist nicht mehr verfügbar.' => 'This request is no longer available.',
 ];
