@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 A photo arrives ready to use: the guest turns it, frames the person and describes it (title, description, photo or
 document); the reviewer can still turn and frame it. Applied, it becomes a media object with that description,

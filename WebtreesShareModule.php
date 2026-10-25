@@ -123,7 +123,7 @@ class WebtreesShareModule extends AbstractModule implements ModuleCustomInterfac
 
     public function customModuleVersion(): string
     {
-        return '0.2.0';
+        return '0.3.0';
     }
 
     /**
