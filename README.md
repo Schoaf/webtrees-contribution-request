@@ -19,13 +19,16 @@ The app [webtrees mobile](https://github.com/Schoaf/webtrees-mobile) supports it
    person's key facts (birth/death date and place).
 2. **The link** opens a small, phone-friendly webtrees page — no login required. The person sees exactly
    what was known at request time (not the tree's current, possibly more sensitive state), can correct or
-   complete the fields, add a photo, and add a free-text note.
+   complete the fields, add a photo - turned the right way round, framed around the person and described -
+   and add a free-text note.
 3. **The answer** goes back to whoever made the request — as a notification (an icon in webtrees, optionally
    in a companion app) and by email. webtrees has no private-messaging feature, so this module stores the
    request and its response itself, in a single table.
 4. **Applying it:** the requester sees old vs. proposed values side by side, picks what to keep, and saves.
    This runs as an ordinary edit under their own account — exactly as if they'd received the information by
    phone and typed it in themselves. Existing rules (moderation, "auto-accept edits", …) apply unchanged.
+   A photo can still be turned and framed first; it becomes a media object with its title, description and
+   type, linked with its frame as GEDCOM 7 `2 CROP`, and the person's photo if they had none (or if chosen).
 5. **Asking further:** after submitting, the guest is offered the person's parents/children to help with
    next, ranked by how much is still missing for them — no new link needs to be created for that.
 
@@ -69,7 +72,11 @@ uses):
 | `RequestNotifications` | GET | yes | `{unread}` for a notification badge |
 
 A submitted photo is held in webtrees' own "data" folder, never the tree's media library, until the
-requester accepts it on the review page — only then does it become a real media object.
+requester accepts it on the review page — only then does it become a real media object. Turning happens on the
+server (`photo_turns`, quarter turns clockwise); the frame (`crop_top`, `crop_left`, `crop_height`,
+`crop_width`) is in pixels of the turned image. Apps get `photoCrop`, `photoTitle`, `photoNote`, `photoType` and
+`hasProfilePhoto` from `RequestDetail` and may send `photoTurns`, `photoCrop`, `photoTitle`, `photoNote`,
+`photoType` and `photoIsProfile` with `RequestApply`.
 
 ## Releasing
 

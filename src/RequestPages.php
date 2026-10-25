@@ -24,13 +24,23 @@ use Fisharebest\Webtrees\Tree;
 use Fisharebest\Webtrees\TreeUser;
 use Fisharebest\Webtrees\Validator;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Intervention\Image\ImageManager;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
 
+use function array_key_exists;
 use function date;
+use function extension_loaded;
+use function is_array;
+use function is_numeric;
+use function preg_replace;
+use function strpos;
+use function substr;
 use function e;
 use function getimagesizefromstring;
 use function http_build_query;
@@ -228,6 +238,7 @@ trait RequestPages
             'fields'          => $data['fields'] ?? [],
             'context'         => $data['context'] ?? [],
             'photo_url'       => $photo !== '' ? $this->actionUrl('RequestExistingPhoto', $tree->name(), ['token' => $token]) : '',
+            'photo_editor'    => $this->name() . '::photo-editor',
             'action'          => $this->actionUrl('RequestSubmit', $tree->name()),
         ]);
     }
@@ -264,13 +275,20 @@ trait RequestPages
                 : GedcomSnapshot::line($raw);
         }
 
+        $photo = $this->storePendingPhoto($request->getUploadedFiles()['photo'] ?? null);
+
         $response_data = [
             'fields'          => $fields,
             'note'            => GedcomSnapshot::line($this->str($body, 'note')),
-            'photo'           => $this->storePendingPhoto($request->getUploadedFiles()['photo'] ?? null),
+            'photo'           => $photo,
             'responder_name'  => GedcomSnapshot::line($this->str($body, 'responder_name')),
             'responder_email' => GedcomSnapshot::line($this->str($body, 'responder_email')),
         ];
+
+        // Turned, framed and described by the guest, so it arrives ready to use.
+        if ($photo !== '') {
+            $response_data = $this->withPhotoEdits($response_data, $body);
+        }
 
         DB::table('webtreesshare_request')
             ->where('id', '=', $row->id)
@@ -425,6 +443,7 @@ trait RequestPages
         }
 
         $photo = $response_data['photo'] ?? '';
+        $current = $individual instanceof Individual ? $individual->findHighlightedMediaFile() : null;
 
         return $this->viewResponse($this->name() . '::request-review', [
             'title'         => I18N::translate('Antwort prüfen'),
@@ -437,6 +456,13 @@ trait RequestPages
             'applied'       => $row->status === 'applied',
             'action'        => $this->actionUrl('RequestReview', $tree->name()),
             'photo_url'     => $photo !== '' ? $this->actionUrl('RequestPhoto', $tree->name(), ['id' => $row->id]) : '',
+            'photo_crop'    => $response_data['photo_crop'] ?? null,
+            'photo_title'   => $response_data['photo_title'] ?? '',
+            'photo_note'    => $response_data['photo_note'] ?? '',
+            'photo_type'    => $response_data['photo_type'] ?? 'photo',
+            'photo_editor'  => $this->name() . '::photo-editor',
+            // The person's photo now - side by side with the new one when asking whether to switch.
+            'current_photo' => $current !== null && $current->isImage() ? $current->imageUrl(200, 200, 'crop') : '',
             'delete_action' => $this->actionUrl('RequestDelete', $tree->name()),
         ]);
     }
@@ -526,6 +552,10 @@ trait RequestPages
 
         $response_data = json_decode($row->response_data ?? '{}', true) ?: [];
         $accept        = $body['accept'] ?? [];
+
+        if (!empty($accept['photo'])) {
+            $response_data = $this->withPhotoEdits($response_data, $body);
+        }
 
         $this->applyAcceptedResponse($tree, $individual, $response_data, $accept);
 
@@ -618,6 +648,13 @@ trait RequestPages
             'compare'   => $compare === [] ? (object) [] : $compare,
             'note'      => $response_data['note'] ?? '',
             'photoUrl'  => $photo !== '' ? $this->actionUrl('RequestPhoto', $tree->name(), ['id' => $row->id]) : '',
+            // As the guest turned, framed and described it - the app can still turn and frame it
+            // (photoTurns, photoCrop, photoIsProfile ... on RequestApply).
+            'photoCrop'  => $response_data['photo_crop'] ?? null,
+            'photoTitle' => $response_data['photo_title'] ?? '',
+            'photoNote'  => $response_data['photo_note'] ?? '',
+            'photoType'  => $response_data['photo_type'] ?? 'photo',
+            'hasProfilePhoto' => $individual instanceof Individual && $individual->findHighlightedMediaFile()?->isImage() === true,
         ]);
     }
 
@@ -646,6 +683,10 @@ trait RequestPages
 
         $response_data = json_decode($row->response_data ?? '{}', true) ?: [];
         $accept        = is_array($body['accept'] ?? null) ? $body['accept'] : [];
+
+        if (!empty($accept['photo'])) {
+            $response_data = $this->withPhotoEdits($response_data, $body);
+        }
 
         $this->applyAcceptedResponse($tree, $individual, $response_data, $accept);
 
@@ -699,7 +740,7 @@ trait RequestPages
         $photo = (string) ($response_data['photo'] ?? '');
 
         if ($photo !== '' && !empty($accept['photo'])) {
-            $this->applyPendingPhoto($tree, $individual, $photo);
+            $this->applyPendingPhoto($tree, $individual, $response_data);
         }
     }
 
@@ -1194,10 +1235,15 @@ trait RequestPages
     /**
      * Turn an accepted pending photo into a real webtrees media object (content-hash filename,
      * accept the media object immediately, link it to the record as a normal - possibly
-     * pending - edit).
+     * pending - edit): with the title, description and type from the guest or reviewer, and the
+     * frame around the person as GEDCOM 7 "2 CROP" on the link. It becomes the person's photo
+     * (first link, "2 _PRIM Y") if they had none or the reviewer chose so.
+     *
+     * @param array<string,mixed> $response_data
      */
-    private function applyPendingPhoto(Tree $tree, Individual $individual, string $photo): void
+    private function applyPendingPhoto(Tree $tree, Individual $individual, array $response_data): void
     {
+        $photo      = (string) $response_data['photo'];
         $pending_fs = $this->pendingPhotoFilesystem();
 
         if (!$pending_fs->fileExists($photo)) {
@@ -1211,14 +1257,121 @@ trait RequestPages
         $tree->mediaFilesystem()->write($filename, $content);
 
         $media_file_service = Registry::container()->get(MediaFileService::class);
-        $gedcom             = "0 @@ OBJE\n" . $media_file_service->createMediaFileGedcom($filename, 'photo', '', '');
-        $media              = $tree->createMediaObject($gedcom);
+        $type               = ($response_data['photo_type'] ?? '') === 'document' ? 'document' : 'photo';
+        $gedcom             = "0 @@ OBJE\n" . $media_file_service->createMediaFileGedcom(
+            $filename,
+            $type,
+            GedcomSnapshot::line((string) ($response_data['photo_title'] ?? '')),
+            GedcomSnapshot::line((string) ($response_data['photo_note'] ?? '')),
+        );
+        $media = $tree->createMediaObject($gedcom);
 
         Registry::container()->get(PendingChangesService::class)->acceptRecord($media);
 
-        $individual->createFact('1 OBJE @' . $media->xref() . '@', true);
+        $current    = $individual->findHighlightedMediaFile();
+        $is_profile = !empty($response_data['photo_profile']) || $current === null || !$current->isImage();
+        $link       = '1 OBJE @' . $media->xref() . '@' . ($is_profile ? "\n2 _PRIM Y" : '');
+        $crop       = $response_data['photo_crop'] ?? null;
+
+        if (is_array($crop)) {
+            $link .= "\n2 CROP\n3 TOP " . (int) $crop['top'] . "\n3 LEFT " . (int) $crop['left']
+                . "\n3 HEIGHT " . (int) $crop['height'] . "\n3 WIDTH " . (int) $crop['width'];
+        }
+
+        $record = $individual->gedcom();
+
+        if ($is_profile) {
+            // webtrees shows the first linked image: the new link goes before all others, which lose their _PRIM.
+            $record = (string) preg_replace('/(\n1 OBJE @[^@\n]+@)\n2 _PRIM [^\n]*/', '$1', $record);
+            $first  = strpos($record, "\n1 OBJE ");
+            $record = $first === false ? $record . "\n" . $link : substr($record, 0, $first) . "\n" . $link . substr($record, $first);
+        } else {
+            $record .= "\n" . $link;
+        }
+
+        $individual->updateRecord($record, true);
 
         $pending_fs->delete($photo);
+    }
+
+    /**
+     * The photo as the guest or reviewer left it: turned on the server (photo_turns, quarter turns
+     * clockwise), the frame (crop_* from a form, photoCrop from an app; pixels of the turned
+     * image), title, description, type - and, from the reviewer, whether it becomes the person's
+     * photo (photo_profile / photoIsProfile).
+     *
+     * @param array<string,mixed> $response_data
+     * @param array<string,mixed> $body
+     *
+     * @return array<string,mixed>
+     */
+    private function withPhotoEdits(array $response_data, array $body): array
+    {
+        $turns = (int) ($body['photo_turns'] ?? $body['photoTurns'] ?? 0);
+
+        if ($turns % 4 !== 0) {
+            $this->turnPendingPhoto((string) $response_data['photo'], $turns % 4);
+            // An old frame no longer fits a turned image - unless a new one comes with the turn.
+            $response_data['photo_crop'] = null;
+        }
+
+        $crop = is_array($body['photoCrop'] ?? null) ? $body['photoCrop'] : [
+            'top' => $body['crop_top'] ?? '', 'left' => $body['crop_left'] ?? '',
+            'height' => $body['crop_height'] ?? '', 'width' => $body['crop_width'] ?? '',
+        ];
+
+        if (array_key_exists('photoCrop', $body) || array_key_exists('crop_top', $body)) {
+            $response_data['photo_crop'] = self::validCrop($crop);
+        }
+
+        foreach (['photo_title' => 'photoTitle', 'photo_note' => 'photoNote', 'photo_type' => 'photoType'] as $form => $json) {
+            if (array_key_exists($form, $body) || array_key_exists($json, $body)) {
+                $response_data[$form] = GedcomSnapshot::line((string) ($body[$form] ?? $body[$json] ?? ''));
+            }
+        }
+
+        $response_data['photo_profile'] = !empty($body['photo_profile']) || !empty($body['photoIsProfile']);
+
+        return $response_data;
+    }
+
+    /**
+     * A frame with whole, non-negative numbers and a size - else none.
+     *
+     * @param array<string,mixed> $crop
+     *
+     * @return array{top:int,left:int,height:int,width:int}|null
+     */
+    private static function validCrop(array $crop): array|null
+    {
+        $valid = [];
+
+        foreach (['top', 'left', 'height', 'width'] as $key) {
+            $value = $crop[$key] ?? '';
+
+            if (!is_numeric($value) || (int) $value < ($key === 'height' || $key === 'width' ? 1 : 0)) {
+                return null;
+            }
+
+            $valid[$key] = (int) $value;
+        }
+
+        return $valid;
+    }
+
+    /** Turn a pending photo clockwise by quarter turns, in place. */
+    private function turnPendingPhoto(string $photo, int $turns): void
+    {
+        $filesystem = $this->pendingPhotoFilesystem();
+
+        if ($photo === '' || !$filesystem->fileExists($photo)) {
+            return;
+        }
+
+        $manager = extension_loaded('imagick') ? new ImageManager(new ImagickDriver()) : new ImageManager(new GdDriver());
+        // Intervention turns counter-clockwise; it applies the camera's orientation (EXIF) when reading.
+        $image = $manager->read($filesystem->read($photo))->rotate(-90 * $turns);
+        $filesystem->write($photo, $image->encodeByExtension(pathinfo($photo, PATHINFO_EXTENSION), quality: 90)->toString());
     }
 
     /**

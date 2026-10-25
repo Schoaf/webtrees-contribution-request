@@ -65,4 +65,13 @@ return [
     'Als Notiz übernehmen'               => 'Apply as a note',
     'Foto übernehmen'                    => 'Apply photo',
     'Ausgewähltes übernehmen'            => 'Apply selected',
+    'Drehen'                              => 'Turn',
+    'Rahmen entfernen'                    => 'Remove frame',
+    'Rahmen um die Person'                => 'Frame the person',
+    'Größe ändern'                        => 'Resize',
+    'Titel des Fotos'                     => 'Title of the photo',
+    'Beschreibung'                        => 'Description',
+    'Foto'                                => 'Photo',
+    'Dokument'                            => 'Document',
+    'Als Profilbild verwenden (statt des bisherigen)' => 'Use as profile picture (instead of the current one)',
 ];

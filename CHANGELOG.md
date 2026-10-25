@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+A photo arrives ready to use: the guest turns it, frames the person and describes it (title, description, photo or
+document); the reviewer can still turn and frame it. Applied, it becomes a media object with that description,
+linked with the frame as GEDCOM 7 `2 CROP`, and the person's photo if they had none or the reviewer chose so. Apps
+get and send the same through `RequestDetail` and `RequestApply`.
+
 ## 0.2.0
 
 Module texts in English for all languages except German; the email and the request page follow the app's language.

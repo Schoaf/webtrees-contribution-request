@@ -30,6 +30,47 @@ def create_request(xref="I1"):
     return editor, re.search(r"token=([A-Za-z0-9]+)", r.json["url"]).group(1)
 
 
+def red_blue_png(width=100, height=60):
+    """Left half red, right half blue - which way round it ends up shows the turn."""
+    import struct
+    import zlib
+    half = width // 2
+    row = b"\x00" + (b"\xff\x00\x00" * half) + (b"\x00\x00\xff" * (width - half))
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(row * height)) + chunk(b"IEND", b""))
+
+
+def submit_with_photo(session, token, fields, png):
+    """The guest form as a browser sends it: multipart with the photo."""
+    import urllib.request
+    import uuid
+    boundary = uuid.uuid4().hex
+    parts = []
+    for key, value in {"_csrf": session.csrf, "token": token, **fields}.items():
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; filename="photo.png"\r\n'
+                 f'Content-Type: image/png\r\n\r\n'.encode() + png + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    req = urllib.request.Request(session.url(f"/module/{environment.MODULE_NAME}/RequestSubmit/tree"),
+                                 data=b"".join(parts), method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    return session.send(req)
+
+
+def image_file(media_xref):
+    """Size and the colour at the top middle of a media object's file in the tree's media folder."""
+    import subprocess
+    gedcom = environment.sql("SELECT m_gedcom FROM wt_media WHERE m_id = ?", media_xref)[0][0]
+    name = re.search(r"\n1 FILE (.+)", gedcom).group(1).strip()
+    path = os.path.join(environment.WT, "data", "media", name)
+    out = subprocess.run([environment.PHP, "-r", f"$i = imagecreatefrompng('{path}'); $w = imagesx($i); "
+                          "echo $w, ' ', imagesy($i), ' ', dechex(imagecolorat($i, intdiv($w, 2), 5));"],
+                         capture_output=True, text=True, check=True).stdout.split()
+    return int(out[0]), int(out[1]), out[2]
+
+
 class Module(unittest.TestCase):
     def test_info(self):
         version = re.search(r"function customModuleVersion\(\): string\s*\{\s*return '([^']+)'",
@@ -104,6 +145,51 @@ class Module(unittest.TestCase):
                          "only the requester may delete")
         editor.post("RequestDelete", {"id": row})
         self.assertEqual([], environment.sql("SELECT id FROM wt_webtreesshare_request WHERE id = ?", row))
+
+    def test_guest_sends_a_photo_ready_to_use(self):
+        """Turned, framed and described by the guest: applied as it is - the person's photo, with its frame."""
+        editor, token = create_request("I2")
+        guest = environment.Session(E.base)
+        guest.page(f"/module/{environment.MODULE_NAME}/Request/tree", token=token)
+        submit_with_photo(guest, token, {
+            "photo_turns": "1", "crop_top": "0", "crop_left": "0", "crop_height": "50", "crop_width": "60",
+            "photo_title": "Hochzeit 1950", "photo_note": "Am Kirchplatz", "photo_type": "document",
+        }, red_blue_png())
+
+        entry = next(r for r in editor.get("RequestList").json["requests"] if r["xref"] == "I2")
+        detail = editor.get("RequestDetail", id=entry["id"]).json
+        self.assertEqual(({"top": 0, "left": 0, "height": 50, "width": 60}, "Hochzeit 1950", "Am Kirchplatz", "document"),
+                         (detail["photoCrop"], detail["photoTitle"], detail["photoNote"], detail["photoType"]), detail)
+
+        self.assertTrue(editor.post("RequestApply", {"id": entry["id"], "accept": {"photo": True}}).json["ok"])
+        pending = environment.sql("SELECT new_gedcom FROM wt_change WHERE xref = 'I2' AND status = 'pending' ORDER BY change_id DESC")[0][0]
+        link = re.search(r"\n1 OBJE @(\w+)@\n2 _PRIM Y\n2 CROP\n3 TOP 0\n3 LEFT 0\n3 HEIGHT 50\n3 WIDTH 60", pending)
+        self.assertIsNotNone(link, pending)
+        media = environment.sql("SELECT m_gedcom FROM wt_media WHERE m_id = ?", link.group(1))[0][0]
+        self.assertIn("2 TITL Hochzeit 1950", media)
+        self.assertIn("3 TYPE document", media)
+        self.assertIn("1 NOTE Am Kirchplatz", media)
+        # Turned clockwise by the guest: 60 x 100, the red left half now on top
+        self.assertEqual((60, 100, "ff0000"), image_file(link.group(1)))
+
+    def test_reviewer_turns_and_frames_before_applying(self):
+        """The reviewer can still turn and frame it before applying."""
+        editor, token = create_request("I3")
+        guest = environment.Session(E.base)
+        guest.page(f"/module/{environment.MODULE_NAME}/Request/tree", token=token)
+        submit_with_photo(guest, token, {}, red_blue_png())
+        entry = next(r for r in editor.get("RequestList").json["requests"] if r["xref"] == "I3")
+        self.assertIsNone(editor.get("RequestDetail", id=entry["id"]).json["photoCrop"])
+
+        r = editor.post("RequestApply", {"id": entry["id"], "accept": {"photo": True}, "photoTurns": 2,
+                                         "photoCrop": {"top": 10, "left": 20, "height": 30, "width": 30}})
+        self.assertTrue(r.json["ok"], r)
+        pending = environment.sql("SELECT new_gedcom FROM wt_change WHERE xref = 'I3' AND status = 'pending' ORDER BY change_id DESC")[0][0]
+        link = re.search(r"\n1 OBJE @(\w+)@(\n2 _PRIM Y)?\n2 CROP\n3 TOP 10\n3 LEFT 20\n3 HEIGHT 30\n3 WIDTH 30", pending)
+        self.assertIsNotNone(link, pending)
+        # Half a turn: still 100 x 60
+        width, height, _ = image_file(link.group(1))
+        self.assertEqual((100, 60), (width, height))
 
 
 if __name__ == "__main__":

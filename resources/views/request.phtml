@@ -16,6 +16,7 @@ use WebtreesShare\GedcomSnapshot;
  * @var string                $tree_url
  * @var string                $requester_name
  * @var string                $photo_url
+ * @var string                $photo_editor  view name of the photo tools
  */
 
 $birt_date_iso = GedcomSnapshot::gedcomDateToIso($fields['BIRT_DATE'] ?? '');
@@ -60,6 +61,21 @@ $deat_date_iso = GedcomSnapshot::gedcomDateToIso($fields['DEAT_DATE'] ?? '');
       <label for="wtshare-photo" class="wtshare-photo-upload" title="<?= e(I18N::translate('Foto hinzufügen')) ?>">+</label>
       <input type="file" id="wtshare-photo" name="photo" accept="image/*" class="wtshare-photo-input">
     </div>
+    <?= view($photo_editor, ['id' => 'wtshare-photo-editor', 'src' => '', 'crop' => null, 'file_input' => 'wtshare-photo']) ?>
+    <div id="wtshare-photo-details" style="display:none; text-align: left;">
+      <div class="wtshare-field">
+        <label for="wtshare-photo-title"><?= I18N::translate('Titel des Fotos') ?></label>
+        <input type="text" id="wtshare-photo-title" name="photo_title">
+      </div>
+      <div class="wtshare-field">
+        <label for="wtshare-photo-note"><?= I18N::translate('Beschreibung') ?></label>
+        <textarea id="wtshare-photo-note" name="photo_note" rows="2"></textarea>
+      </div>
+      <div class="wtshare-field">
+        <label><input type="radio" name="photo_type" value="photo" checked> <?= I18N::translate('Foto') ?></label>
+        <label><input type="radio" name="photo_type" value="document"> <?= I18N::translate('Dokument') ?></label>
+      </div>
+    </div>
   </div>
   <script>
     // Selecting a file (incl. taking a photo on mobile) doesn't reload the page, so without
@@ -75,6 +91,7 @@ $deat_date_iso = GedcomSnapshot::gedcomDateToIso($fields['DEAT_DATE'] ?? '');
       preview.src = URL.createObjectURL(file);
       preview.style.display = 'block';
       placeholder.style.display = 'none';
+      document.getElementById('wtshare-photo-details').style.display = '';
     });
   </script>
 

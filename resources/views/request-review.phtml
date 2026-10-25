@@ -14,6 +14,12 @@ use Fisharebest\Webtrees\I18N;
  * @var bool   $applied
  * @var string $action
  * @var string $photo_url
+ * @var array{top:int,left:int,height:int,width:int}|null $photo_crop
+ * @var string $photo_title
+ * @var string $photo_note
+ * @var string $photo_type
+ * @var string $photo_editor
+ * @var string $current_photo
  * @var string $delete_action
  */
 
@@ -86,6 +92,10 @@ $field_labels = [
     background: #C4C4C4;
     cursor: not-allowed;
   }
+  .wtshare-photo-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .wtshare-photo-fields > label { display: flex; flex-direction: column; gap: 4px; }
+  .wtshare-current-photo { display: flex; align-items: center; gap: 12px; }
+  .wtshare-current-photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; margin: 0; }
   .wtshare-delete-form button[type="submit"] {
     background: transparent;
     color: #B3261E;
@@ -155,8 +165,29 @@ $field_labels = [
             <input type="checkbox" name="accept[photo]" value="1">
             <strong><?= I18N::translate('Foto übernehmen') ?></strong>
           </label>
-          <div class="values">
-            <div class="after"><img src="<?= e($photo_url) ?>" alt=""></div>
+          <?php // As the guest left it - still to be turned and framed here before applying. ?>
+          <?= view($photo_editor, ['id' => 'wtshare-review-photo', 'src' => $photo_url, 'crop' => $photo_crop, 'file_input' => '']) ?>
+          <div class="wtshare-photo-fields">
+            <label><?= I18N::translate('Titel des Fotos') ?>
+              <input type="text" name="photo_title" value="<?= e($photo_title) ?>" class="form-control">
+            </label>
+            <label><?= I18N::translate('Beschreibung') ?>
+              <textarea name="photo_note" rows="2" class="form-control"><?= e($photo_note) ?></textarea>
+            </label>
+            <div>
+              <label style="display:inline-flex"><input type="radio" name="photo_type" value="photo" <?= $photo_type !== 'document' ? 'checked' : '' ?>> <?= I18N::translate('Foto') ?></label>
+              <label style="display:inline-flex; margin-left: 16px"><input type="radio" name="photo_type" value="document" <?= $photo_type === 'document' ? 'checked' : '' ?>> <?= I18N::translate('Dokument') ?></label>
+            </div>
+            <?php if ($current_photo !== '') : ?>
+              <?php // Has a photo already: the new one only replaces it when asked to, with the old one in view. ?>
+              <div class="wtshare-current-photo">
+                <img src="<?= e($current_photo) ?>" alt="">
+                <label>
+                  <input type="checkbox" name="photo_profile" value="1">
+                  <?= I18N::translate('Als Profilbild verwenden (statt des bisherigen)') ?>
+                </label>
+              </div>
+            <?php endif; ?>
           </div>
         </div>
       <?php endif; ?>
