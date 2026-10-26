@@ -5,8 +5,19 @@
 Ein Modul für [webtrees](https://webtrees.net/), mit dem man eine einzelne Person per Link mit jemandem teilen
 kann, der **kein** webtrees-Konto hat – zum Beispiel einer Tante, die bestimmt weiß, wann ihr Vater geboren
 wurde, aber selbst nie ein Konto anlegen würde. Ein gewöhnliches Zusatzmodul: Es liegt in `modules_v4/`,
-der webtrees-Kern wird nicht verändert. Die App [webtrees mobile](https://github.com/Schoaf/webtrees-mobile)
-unterstützt es.
+der webtrees-Kern wird nicht verändert.
+
+**Noch einfacher mit der App:** [webtrees mobile](https://github.com/Schoaf/webtrees-mobile), die kostenlose App
+für iPhone, iPad und Android, hat dieses Modul eingebaut. Bei einer Person auf „Um Mithilfe bitten“ tippen, den
+Link per Nachricht oder E-Mail schicken und die Antwort direkt am Handy prüfen – Foto drehen und zuschneiden,
+Angaben auswählen, fertig. Ganz ohne Computer, wo immer du gerade bist.
+
+<a href="https://apps.apple.com/app/id6815108154"><img src="docs/app-store-badge.svg" height="40" alt="Laden im App Store"></a>
+<a href="https://play.google.com/store/apps/details?id=net.webtrees.webtreesmobile"><img src="docs/google-play-badge.png" height="40" alt="Jetzt bei Google Play"></a>
+
+| Die Seite für Verwandte – ohne Konto | Prüfen in der App | Prüfen in webtrees |
+| :-: | :-: | :-: |
+| <img src="docs/guest-page.png" width="240" alt="Die Seite hinter dem Link: Foto mit Rahmen, Name, Daten"> | <img src="docs/review-app.png" width="240" alt="webtrees mobile: Antwort prüfen, Foto drehen und zuschneiden"> | <img src="docs/review-web.png" width="320" alt="webtrees: Antwort prüfen und übernehmen"> |
 
 | | |
 | - | - |

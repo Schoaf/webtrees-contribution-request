@@ -5,7 +5,18 @@
 A module for [webtrees](https://webtrees.net/) that lets you share a single person with someone who has
 **no** webtrees account — for example a relative who certainly knows a birth date, but would never create an
 account themselves. An ordinary add-on module: it lives in `modules_v4/`, the webtrees core is untouched.
-The app [webtrees mobile](https://github.com/Schoaf/webtrees-mobile) supports it.
+
+**Even easier with the app:** [webtrees mobile](https://github.com/Schoaf/webtrees-mobile), the free app for
+iPhone, iPad and Android, has this module built in. Tap “Ask for help” on a person, send the link by message or
+email, and review the answer right on your phone – turn and frame the photo, pick the details to keep, done.
+No computer needed, wherever you are.
+
+<a href="https://apps.apple.com/app/id6815108154"><img src="docs/app-store-badge.svg" height="40" alt="Download on the App Store"></a>
+<a href="https://play.google.com/store/apps/details?id=net.webtrees.webtreesmobile"><img src="docs/google-play-badge.png" height="40" alt="Get it on Google Play"></a>
+
+| The relative's page – no account needed | Reviewing in the app | Reviewing in webtrees |
+| :-: | :-: | :-: |
+| <img src="docs/guest-page.png" width="240" alt="The page the link opens: photo with frame, name, dates"> | <img src="docs/review-app.png" width="240" alt="webtrees mobile: review the answer, turn and frame the photo"> | <img src="docs/review-web.png" width="320" alt="webtrees: review the answer and apply it"> |
 
 | | |
 | - | - |
