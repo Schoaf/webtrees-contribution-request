@@ -92,3 +92,13 @@ Medienobjekt.
 `customModuleVersion()` und `latest-version.txt` erhöhen, einen Abschnitt in `CHANGELOG.md` ergänzen, dann
 einen Tag `v<Version>` pushen. Der Release-Workflow prüft, dass alle drei passen, baut das ZIP und
 veröffentlicht das Release.
+
+## Buy me a bagel 🥯
+
+Die Arbeit an diesem Projekt kostet Zeit und Geld. Wenn du das Projekt unterstützen möchtest, lad mich auf einen Bagel ein: Scanne den QR-Code mit deiner Banking-App.
+
+<img src="docs/buy-me-a-bagel.png" alt="QR-Code für eine SEPA-Überweisung über 5 Euro" width="200">
+
+Andreas Scharf · IBAN DE59 1001 1001 2074 1651 75 · BIC NTSBDEB1XXX
+
+Danke, und guten Appetit mir! 🙂

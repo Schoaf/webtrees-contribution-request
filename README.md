@@ -93,3 +93,11 @@ server (`photo_turns`, quarter turns clockwise); the frame (`crop_top`, `crop_le
 
 Bump `customModuleVersion()` and `latest-version.txt`, add a section to `CHANGELOG.md`, then push a tag
 `v<version>`. The release workflow checks that all three match, builds the ZIP and publishes the release.
+
+## Buy me a bagel 🥯
+
+Working on this project takes time and money. If you'd like to support it, buy me a bagel: scan the QR code with your banking app.
+
+<img src="docs/buy-me-a-bagel.png" alt="QR code for a SEPA transfer of 5 euros" width="200">
+
+Andreas Scharf · IBAN DE59 1001 1001 2074 1651 75 · BIC NTSBDEB1XXX
